@@ -130,10 +130,10 @@ jobs:
             # so here we store the URL into a text file
             - name: Authorize SF Org
               env:
-                CLIENT_ID: ${{ secrets.SALESFORCEPRODCLIENTID }}
-                USERNAME: ${{ secrets.SALESFORCEPRODUSERNAME }}
-                INSTANCE_URL: ${{ secrets.SALESFORCEPRODINSTANCEURL }}
-              run: sfdx force:auth:jwt:grant --clientid $CLIENT_ID --jwtkeyfile ./assets/server.key --username $USERNAME --instanceurl $INSTANCE_URL -a buildBX
+                CLIENT_ID: ${{ secrets.SALESFORCEPRODCLIENTID_BUILDBX }}
+                USERNAME: ${{ secrets.SALESFORCEPRODUSERNAME_BUILDBX }}
+                INSTANCE_URL: ${{ secrets.SALESFORCEPRODINSTANCEURL_BUILDBX }}
+              run: sfdx force:auth:jwt:grant --clientid $CLIENT_ID --jwtkeyfile ./assets/server_build.key --username $USERNAME --instanceurl $INSTANCE_URL -a buildBX
 
             # We use SFDX Git Delta to create a directory with only the metadata that has changed.
             # this allows us to deploy only those changes, as opposed to deploying the entire branch. 
