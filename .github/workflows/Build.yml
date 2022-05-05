@@ -175,4 +175,5 @@ jobs:
               if: ${{ env.APEX_TESTS == 'all' }}
               run: |
                   sfdx config:set defaultusername=$USERNAME --global  
+                  echo sfdx config:list
                   sfdx force:source:deploy -p "changed-sources/force-app" --checkonly --targetusername $USERNAME --testlevel RunLocalTests  --json
