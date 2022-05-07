@@ -1,41 +1,60 @@
-name: Validate PR on develop branch in QA
+name: Validate Pull Request
 on:
     pull_request:
-      types: [opened, synchronize, reopened]
-      branches: [ develop ]
-      paths:
-        - 'force-app/**'
+        types: [opened, edited, synchronize, reopened]
+# Jobs to be executed
 jobs:
-    validate-deployment-on-develop-org:
-        runs-on: ubuntu-latest        
+    format-lint-lwc-tests:
+        runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2              
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
+              
+              # Install npm dependencies for Prettier and Jest
+            - name: 'Install npm dependencies'
+              if: steps.cache-npm.outputs.cache-hit != 'true'
+              run: npm ci
+              
+              # Prettier formatting
+            - name: 'Code formatting verification with Prettier'
+              run: npm run prettier:verify
+              
+              # Lint LWC
+            - name: 'Lint Lightning Web Components'
+              run: npm run lint
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
             - name: Setup Node
               uses: actions/setup-node@v3
               with:
-                node-version: '14'
+                node-version: '14'  
             - name: 'Read PR Body'
               env:
                 PR_BODY: ${{github.event.pull_request.body}}
               run: |
-                  echo $PR_BODY > ./pr_body.txt
-                  node ./parsePR.js              
-                  TESTS=$(cat testsToRun.txt)       
-                  echo "APEX_TESTS=$TESTS" >> $GITHUB_ENV
+                echo $PR_BODY > ./pr_body.txt
+                node ./parsePR.js              
+                TESTS=$(cat testsToRun.txt)       
+                echo "APEX_TESTS=$TESTS" >> $GITHUB_ENV
+                
+            #Install CLI
             - name: 'Install Salesforce CLI'
               run: npm install sfdx-cli --global
-            - name: Authorize SF Org
-              env:
-               CLIENT_ID: ${{ secrets.SALESFORCEPRODCLIENTID_BUILDBX }}
-               USERNAME: ${{ secrets.SALESFORCEPRODUSERNAME_BUILDBX }}
-               INSTANCE_URL: ${{ secrets.SALESFORCEPRODINSTANCEURL_BUILDBX }}
-              run: sfdx force:auth:jwt:grant --clientid $CLIENT_ID --jwtkeyfile ./assets/server_build.key --username $USERNAME --instanceurl $INSTANCE_URL -a buildBx
-            - name: Convert to Deploy Source
-              run: sfdx force:source:convert -r ./force-app -d ./toDeploy
-    
-            # Run Validation of Deploy Source
-            - name: Run Validation on Deploy Source
-              run: sfdx force:mdapi:deploy -l RunLocalTests -c -d ./toDeploy -u buildBx -w 10
-             
-
             
+            #Authorize SF Org
+            - name: 'Authorize SF Org'
+              env:
+                CLIENT_ID: ${{ secrets.SALESFORCEPRODCLIENTID_BUILDBX }}
+                USERNAME: ${{ secrets.SALESFORCEPRODUSERNAME_BUILDBX }}
+                INSTANCE_URL: ${{ secrets.SALESFORCEPRODINSTANCEURL_BUILDBX }}
+              run: sfdx force:auth:jwt:grant --clientid $CLIENT_ID --jwtkeyfile ./assets/server_build.key --username $USERNAME --instanceurl $INSTANCE_URL -a buildBx
+            
+            #Convert to Deploy Source
+            - name: 'Convert to Deploy Source'
+              run: sfdx force:source:convert -r ./force-app -d ./toDeploy
+              
+            # Run Validation of Deploy Source  
+            - name: 'Run Validation on Deploy Source'
+              run: sfdx force:mdapi:deploy -l RunLocalTests -c -d ./toDeploy -u buildBx -w 10
